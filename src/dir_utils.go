@@ -48,7 +48,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 )
 
@@ -61,7 +60,6 @@ func GetFilesFromDir(path string) ([]string, error) {
 	file_names := make([]string, length)
 	for i := range files {
 		file_names[i] = path + files[i].Name()
-		fmt.Printf("file[%d]: %s\n", i, file_names[i])
 	}
 	return file_names, nil
 }
