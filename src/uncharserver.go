@@ -48,14 +48,18 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 )
 
 const VIEW_TAG = "/view/"
 const EDIT_TAG = "/edit/"
 const SAVE_TAG = "/save/"
+const INDEX_TAG = "/"
 const POST_BODY_TAG = "body"
 const HTML_DIR = "./src/html/"
 
@@ -64,22 +68,31 @@ type UncharServer struct {
 	ValidPath *regexp.Regexp
 }
 
+type Post struct {
+	Id    string
+	Title string
+	Path  string
+}
+
 func NewUncharServer() (*UncharServer, error) {
 	file_names, err := GetFilesFromDir(HTML_DIR)
 	if err != nil {
 		return nil, err
 	}
+	tmpl := template.New("uncharblog")
+	tmpl.ParseFiles(file_names...)
 	server := &UncharServer{
-		Templates: template.Must(template.ParseFiles(file_names...)),
-		ValidPath: regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")}
+		Templates: tmpl,
+		ValidPath: regexp.MustCompile("^/((edit|save|view)/[a-zA-Z0-9]+)?$")}
 	return server, nil
 }
 
-func (s *UncharServer) RenderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
+func (s *UncharServer) RenderTemplate(w http.ResponseWriter, tmpl string, p interface{}) {
 	var err error
 
 	err = s.Templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error executing %s template\n", tmpl+".html")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -90,6 +103,7 @@ func (s *UncharServer) MakeHandler(fn func(w http.ResponseWriter, r *http.Reques
 
 		m = s.ValidPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
+			fmt.Fprintf(os.Stderr, "Invalid URL catched: %s\n", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
@@ -142,6 +156,29 @@ func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title
 		return
 	}
 	http.Redirect(w, r, VIEW_TAG+title, http.StatusFound)
+}
+
+func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, title string) {
+	rows, err := ExeIndQuery("SELECT * FROM uncharblog.posts")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	var p Post
+
+	for rows.Next() {
+		rows.Scan(&p.Id, &p.Title, &p.Path)
+		log.Println(p.Path)
+	}
+	// rawResult := make([][]byte, 3)
+	// c := make([]interface{}, 3)
+	// for i, _ := range rawResult {
+	//	c[i] = &rawResult[i]
+	// }
+	// for rows.Next() {
+	//	rows.Scan(c...)
+	//	log.Println(int(rawResult[0]))
+	// }
 }
 
 //

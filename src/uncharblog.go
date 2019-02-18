@@ -62,6 +62,10 @@ type Page struct {
 	Body  []byte
 }
 
+type PageList struct {
+	List []*Page
+}
+
 func (p *Page) Save() error {
 	var filename string
 
@@ -91,6 +95,7 @@ func main() {
 	http.HandleFunc(VIEW_TAG, s.MakeHandler(s.ViewHandler))
 	http.HandleFunc(EDIT_TAG, s.MakeHandler(s.EditHandler))
 	http.HandleFunc(SAVE_TAG, s.MakeHandler(s.SaveHandler))
+	http.HandleFunc(INDEX_TAG, s.MakeHandler(s.IndexHandler))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
