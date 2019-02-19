@@ -46,12 +46,22 @@
 
 <!DOCTYPE html>
 <html>
-  <head> <link rel="stylesheet" href="/stylesheets/general_style.css"></head>
+  <head>
+    <link rel="stylesheet" href="/stylesheets/general_style.css">
+  </head>
+  <title>{{.Title}}</title>
   <body>
-    <h1 align="center">Editing {{.Title}}</h1>
-    <form action="/save/{{.Title}}" method="POST">
-      <div align="center"><textarea name="body" rows="20" cols="80">{{printf "%s" .Body}}</textarea></div>
-      <div align="center"><input type="submit" value="Save"></div>
+    <form action="/save/{{.Id}}" method="POST">
+      <div align="center">
+        <font color="pink">Title:</font><br>
+        <input name="post_title" type="text" value="{{.Title}}">
+      </div>
+      <div align="center">
+        <font color="pink">Body:</font><br>
+        <textarea name="post_body" rows="20" cols="80">{{printf "%s" .Fil.Body}}</textarea></div>
+      <div align="center">
+        <input type="submit" value="Save" name="save_button">
+      </div>
     </form>
   </body>
 </html>

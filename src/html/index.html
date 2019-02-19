@@ -48,6 +48,11 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <form action="/edit/0" method="POST">
+      <div align="right">
+        <input type="submit" value="Create new post">
+      </div>
+    </form>
     <title>{{.Title}}</title>
   </head>
   <body>
@@ -56,8 +61,8 @@
     {{with .List}}
     {{range .}}
     <div align="center">
-      <h2>{{.Title}}</h2>
-      <p>{{printf "%s" .Fil.Body}}</b>
+      <a href="/view/{{.Id}}"><h2>{{.Title}}</h2></a>
+      <blockquote><p>{{printf "%s" .Fil.Body}}</b></blockquote>
 </div>
 {{end}}
 {{end}}

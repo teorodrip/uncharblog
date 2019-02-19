@@ -82,6 +82,7 @@ func ExeIndQuery(Query string, args ...interface{}) (*sql.Rows, error) {
 	rows, err := db.Query(Query, args...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing the query:\n%s\nWith args: %s\n", Query, args)
+		log.Print(err)
 		return nil, err
 	}
 	return rows, nil
