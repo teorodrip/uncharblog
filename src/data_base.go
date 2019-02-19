@@ -70,7 +70,7 @@ func ConnectDB(ConnStr string) (*sql.DB, error) {
 	return db, nil
 }
 
-func ExeIndQuery(Query string) (*sql.Rows, error) {
+func ExeIndQuery(Query string, args ...interface{}) (*sql.Rows, error) {
 	ConnStr := "dbname=" + DB_NAME +
 		" user=" + DB_USER +
 		" password=" + DB_PASS +
@@ -79,9 +79,9 @@ func ExeIndQuery(Query string) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(Query)
+	rows, err := db.Query(Query, args...)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing the query:\n%s\n", Query)
+		fmt.Fprintf(os.Stderr, "Error executing the query:\n%s\nWith args: %s\n", Query, args)
 		return nil, err
 	}
 	return rows, nil

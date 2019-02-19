@@ -55,35 +55,37 @@ import (
 
 const STYLE_SHEETS_LOCAL_PATH = "./src/stylesheets/"
 const STYLE_SHEETS_URL_PATH = "/stylesheets/"
-const TEXT_LOCAL_PATH = "./resources/text/"
+const POST_LOCAL_PATH = "./resources/posts/"
+
+type Post struct {
+	Id    string
+	Title string
+	Fil   File
+}
 
 type Page struct {
 	Title string
 	Body  []byte
+	List  []Post
 }
 
-type PageList struct {
-	List []*Page
+type File struct {
+	Path string
+	Body []byte
 }
 
-func (p *Page) Save() error {
-	var filename string
-
-	filename = TEXT_LOCAL_PATH + p.Title + ".txt"
-	return (ioutil.WriteFile(filename, p.Body, 0600))
+func (f *File) SaveFile() error {
+	return (ioutil.WriteFile(f.Path, f.Body, 0600))
 }
 
-func LoadPage(title string) (*Page, error) {
-	var filename string
-	var body []byte
+func (f *File) LoadFile() error {
 	var err error
 
-	filename = TEXT_LOCAL_PATH + title + ".txt"
-	body, err = ioutil.ReadFile(filename)
+	f.Body, err = ioutil.ReadFile(f.Path)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &Page{Title: title, Body: body}, nil
+	return nil
 }
 
 func main() {

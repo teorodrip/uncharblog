@@ -48,16 +48,16 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>UncharBlog</title>
+    <title>{{.Title}}</title>
   </head>
   <body>
     <h1 align="center">Unchartech global news</h1>
-    <p align="center">A lot of things</p>
+    <p align="center">{{printf "%s" .Body}}</p>
     {{with .List}}
     {{range .}}
     <div align="center">
       <h2>{{.Title}}</h2>
-      <p>{{printf "%s" .Body}}</b>
+      <p>{{printf "%s" .Fil.Body}}</b>
 </div>
 {{end}}
 {{end}}

@@ -50,7 +50,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -63,15 +62,11 @@ const INDEX_TAG = "/"
 const POST_BODY_TAG = "body"
 const HTML_DIR = "./src/html/"
 
+const POST_LIMIT = 10
+
 type UncharServer struct {
 	Templates *template.Template
 	ValidPath *regexp.Regexp
-}
-
-type Post struct {
-	Id    string
-	Title string
-	Path  string
 }
 
 func NewUncharServer() (*UncharServer, error) {
@@ -83,7 +78,7 @@ func NewUncharServer() (*UncharServer, error) {
 	tmpl.ParseFiles(file_names...)
 	server := &UncharServer{
 		Templates: tmpl,
-		ValidPath: regexp.MustCompile("^/((edit|save|view)/[a-zA-Z0-9]+)?$")}
+		ValidPath: regexp.MustCompile("^/((edit|save|view)/([a-zA-Z0-9]+))?$")}
 	return server, nil
 }
 
@@ -102,74 +97,96 @@ func (s *UncharServer) MakeHandler(fn func(w http.ResponseWriter, r *http.Reques
 		var m []string
 
 		m = s.ValidPath.FindStringSubmatch(r.URL.Path)
-		if m == nil {
+		if m == nil || len(m) != 4 {
 			fmt.Fprintf(os.Stderr, "Invalid URL catched: %s\n", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
-		fn(w, r, m[2])
+		fn(w, r, m[3])
 	}
 }
 
 func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title string) {
-	var p *Page
-	var err error
+	var p Post
 
-	if err != nil {
-		return
-	}
-	p, err = LoadPage(title)
+	rows, err := ExeIndQuery("SELECT post_title, post_path FROM uncharblog.posts WHERE post_id=$1", title)
 	if err != nil {
 		http.Redirect(w, r, EDIT_TAG+title, http.StatusFound)
 		return
 	}
+	defer rows.Close()
+	col_names, err := rows.Columns()
+	if err != nil || len(col_names) != 2 {
+		//redirect page empty
+		return
+	}
+	if rows.Next() {
+		fmt.Printf("A")
+		err := rows.Scan(&p.Title, &p.Fil.Path)
+		if err != nil {
+			// redirect page empty
+			return
+		}
+	} else {
+		//redirect empty page
+		return
+	}
+	p.Fil.LoadFile()
 	s.RenderTemplate(w, "view", p)
 }
 
 func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title string) {
-	var p *Page
-	var err error
+	// var p *Page
+	// var err error
 
-	if err != nil {
-		return
-	}
-	p, err = LoadPage(title)
-	if err != nil {
-		p = &Page{Title: title}
-	}
-	s.RenderTemplate(w, "edit", p)
+	// p, err = LoadPage(title)
+	// if err != nil {
+	//	p = &Page{Title: title}
+	// }
+	// s.RenderTemplate(w, "edit", p)
 }
 
 func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title string) {
-	var body string
-	var p *Page
-	var err error
+	// var body string
+	// var p *Page
+	// var err error
 
-	if err != nil {
-		return
-	}
-	body = r.FormValue(POST_BODY_TAG)
-	p = &Page{Title: title, Body: []byte(body)}
-	err = p.Save()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, VIEW_TAG+title, http.StatusFound)
+	// if err != nil {
+	//	return
+	// }
+	// body = r.FormValue(POST_BODY_TAG)
+	// p = &Page{Title: title, Body: []byte(body)}
+	// err = p.Save()
+	// if err != nil {
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	// }
+	// http.Redirect(w, r, VIEW_TAG+title, http.StatusFound)
 }
 
 func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, title string) {
+	var i int
+	var index Page
+
 	rows, err := ExeIndQuery("SELECT * FROM uncharblog.posts")
 	if err != nil {
 		return
 	}
 	defer rows.Close()
-	var p Post
-
-	for rows.Next() {
-		rows.Scan(&p.Id, &p.Title, &p.Path)
-		log.Println(p.Path)
+	index.Title = "UncharBlog"
+	index.Body = []byte("Awesome things.")
+	index.List = make([]Post, 0, POST_LIMIT)
+	i = 0
+	for rows.Next() && i < POST_LIMIT {
+		index.List = index.List[:(i + 1)]
+		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path))
+		if err != nil {
+			break
+		}
+		index.List[i].Fil.LoadFile()
+		i++
 	}
+	s.RenderTemplate(w, "index", index)
 	// rawResult := make([][]byte, 3)
 	// c := make([]interface{}, 3)
 	// for i, _ := range rawResult {
