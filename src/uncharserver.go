@@ -55,6 +55,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 )
 
 const VIEW_TAG = "/view/"
@@ -167,7 +168,12 @@ func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title
 	p.Id = title
 	p.Fil.Body = []byte(r.FormValue(POST_BODY_TAG))
 	p.Title = r.FormValue(POST_TITLE_TAG)
-	err := s.Db.SqlUpdateAddPost.QueryRow(p.Id, p.Title).Scan(&p.Id)
+	if len(p.Fil.Body) == 0 || len(p.Title) == 0 {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	date := time.Now().Local().Format("2006-01-02")
+	err := s.Db.SqlUpdateAddPost.QueryRow(p.Id, p.Title, date).Scan(&p.Id)
 	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -204,7 +210,6 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	for rows.Next() && i < POST_LIMIT {
 		index.List = index.List[:(i + 1)]
 		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate))
-		fmt.Printf("Date: %s\n", index.List[i].CreationDate)
 		if err != nil {
 			break
 		}

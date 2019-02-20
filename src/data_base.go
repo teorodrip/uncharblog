@@ -99,7 +99,7 @@ func (p *pgDB) PrepareSqlStatements() error {
 	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY') FROM uncharblog.posts WHERE post_id=$1"); err != nil {
 		return err
 	}
-	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title) SELECT $2 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
+	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2, update_date=$3 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title, creation_date, update_date) SELECT $2, $3, $3 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
 		return err
 	}
 	if p.SqlUpdatePost, err = p.Db.Prepare("UPDATE uncharblog.posts SET post_path=$2 WHERE post_id=$1"); err != nil {

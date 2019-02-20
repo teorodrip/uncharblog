@@ -75,18 +75,19 @@
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
         <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
-          <header class="post-header">
-            <h2 itemprop="name headline">Title:
-              <input name="post_title" type="text" value="{{.Title}}">
-            </h2>
-          </header>
-
-          <textarea name="post_body">{{printf "%s" .Fil.Body}}</textarea></div>
-
-      </article>
-</div>
-</main>
-</body>
+          <form action="/save/{{.Id}}" method="POST">
+            <header class="post-header">
+              <h2 itemprop="name headline">Title:
+                <input name="post_title" type="text" value="{{.Title}}">
+                <input align="right" type="submit" value="Save">
+              </h2>
+            </header>
+            <textarea name="post_body">{{printf "%s" .Fil.Body}}</textarea>
+          </form>
+        </article>
+      </div>
+    </main>
+  </body>
 </html>
 
 <!-- <!DOCTYPE html> -->
