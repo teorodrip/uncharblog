@@ -48,7 +48,8 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <form action="/edit/0" method="POST">
+    <link rel="stylesheet" href="/stylesheets/main.scss">
+<form action="/edit/0" method="POST">
       <div align="right">
         <input type="submit" value="Create new post">
       </div>
@@ -58,14 +59,21 @@
   <body>
     <h1 align="center">Unchartech global news</h1>
     <p align="center">{{printf "%s" .Body}}</p>
-    {{with .List}}
-    {{range .}}
     <div align="center">
-      <a href="/view/{{.Id}}"><h2>{{.Title}}</h2></a>
-      <blockquote><p>{{printf "%s" .Fil.Body}}</b></blockquote>
+      {{with .List}}
+      {{range .}}
+      <li>
+        <span class="pos_meta">
+          Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
+        </span>
+        <h2>
+          <a href="/view/{{.Id}}">{{.Title}}</a>
+          <blockquote><p>{{printf "%s" .Fil.Body}}</b></blockquote>
+</h2>
+</li>
+{{end}}
+{{end}}
 </div>
-{{end}}
-{{end}}
 </body>
 </html>
 

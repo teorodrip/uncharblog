@@ -50,7 +50,6 @@ package main
 import (
 	"io/ioutil"
 	"log"
-	"net/http"
 )
 
 const STYLE_SHEETS_LOCAL_PATH = "./src/stylesheets/"
@@ -58,9 +57,11 @@ const STYLE_SHEETS_URL_PATH = "/stylesheets/"
 const POST_LOCAL_PATH = "/home/unchartech_2/go/src/uncharblog/resources/posts/"
 
 type Post struct {
-	Id    string
-	Title string
-	Fil   File
+	Id           string
+	Title        string
+	CreationDate string
+	UpdateDate   string
+	Fil          File
 }
 
 type Page struct {
@@ -93,13 +94,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Handle(STYLE_SHEETS_URL_PATH, http.StripPrefix(STYLE_SHEETS_URL_PATH, http.FileServer(http.Dir(STYLE_SHEETS_LOCAL_PATH))))
-	http.HandleFunc(VIEW_TAG, s.MakeHandler(s.ViewHandler))
-	http.HandleFunc(EDIT_TAG, s.MakeHandler(s.EditHandler))
-	http.HandleFunc(SAVE_TAG, s.MakeHandler(s.SaveHandler))
-	http.HandleFunc(INDEX_TAG, s.MakeHandler(s.IndexHandler))
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	s.Start()
 }
 
 //

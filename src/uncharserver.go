@@ -51,6 +51,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -67,6 +68,7 @@ const HTML_DIR = "./src/html/"
 const POST_LIMIT = 10
 
 type UncharServer struct {
+	Db        *pgDB
 	Templates *template.Template
 	ValidPath *regexp.Regexp
 }
@@ -81,7 +83,20 @@ func NewUncharServer() (*UncharServer, error) {
 	server := &UncharServer{
 		Templates: tmpl,
 		ValidPath: regexp.MustCompile("^/((edit|save|view)/([a-zA-Z0-9]+))?$")}
+	if server.Db, err = ConnectDB(CONN_STR); err != nil {
+		return nil, err
+	}
 	return server, nil
+}
+
+func (s *UncharServer) Start() {
+	http.Handle(STYLE_SHEETS_URL_PATH, http.StripPrefix(STYLE_SHEETS_URL_PATH, http.FileServer(http.Dir(STYLE_SHEETS_LOCAL_PATH))))
+	http.HandleFunc(VIEW_TAG, s.MakeHandler(s.ViewHandler))
+	http.HandleFunc(EDIT_TAG, s.MakeHandler(s.EditHandler))
+	http.HandleFunc(SAVE_TAG, s.MakeHandler(s.SaveHandler))
+	http.HandleFunc(INDEX_TAG, s.MakeHandler(s.IndexHandler))
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func (s *UncharServer) RenderTemplate(w http.ResponseWriter, tmpl string, p interface{}) {
@@ -108,11 +123,8 @@ func (s *UncharServer) MakeHandler(fn func(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (s *UncharServer) LoadData(rows *sql.Rows, values ...interface{}) (error, bool) {
-	col_names, err := rows.Columns()
-	if err != nil || len(col_names) != len(values) {
-		return err, false
-	}
+func (s *UncharServer) LoadRow(rows *sql.Rows, values ...interface{}) (error, bool) {
+	var err error
 	if rows.Next() {
 		err = rows.Scan(values...)
 		if err != nil {
@@ -125,17 +137,9 @@ func (s *UncharServer) LoadData(rows *sql.Rows, values ...interface{}) (error, b
 
 func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var p Post
-	var ok bool
 
-	q := "SELECT post_id, post_title, post_path FROM uncharblog.posts WHERE post_id=$1"
-	rows, err := ExeIndQuery(q, title)
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path)
 	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	defer rows.Close()
-	err, ok = s.LoadData(rows, &p.Id, &p.Title, &p.Fil.Path)
-	if err != nil || !ok {
 		http.Redirect(w, r, EDIT_TAG+title, http.StatusFound)
 		return
 	}
@@ -144,23 +148,13 @@ func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title
 }
 
 func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title string) {
-	var p Post
-	var ok bool
-
-	q := "SELECT post_title, post_path FROM uncharblog.posts WHERE post_id=$1"
-	rows, err := ExeIndQuery(q, title)
-	if err != nil {
+	p := Post{Id: "0"}
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path)
+	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
 	}
-	defer rows.Close()
-	if len(title) > 0 {
-		p.Id = title
-	} else {
-		p.Id = "0"
-	}
-	err, ok = s.LoadData(rows, &p.Title, &p.Fil.Path)
-	if err == nil && ok {
+	if err == nil {
 		p.Fil.LoadFile()
 	}
 	s.RenderTemplate(w, "edit", p)
@@ -168,29 +162,18 @@ func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title
 
 func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var p Post
-	var new_id string
-	var ok bool
 
 	p.Id = title
 	p.Fil.Body = []byte(r.FormValue(POST_BODY_TAG))
 	p.Title = r.FormValue(POST_TITLE_TAG)
-	q := `UPDATE uncharblog.posts SET post_title='` + p.Title + `' WHERE post_id=` + p.Id + `;
-				INSERT INTO uncharblog.posts (post_title)
-							 SELECT '` + p.Title + `'
-							 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=` + p.Id + `)
-							 RETURNING post_id;`
-	rows, err := ExeIndQuery(q) //, p.Id, p.Title)
-	if err != nil {
+	err := s.Db.SqlUpdateAddPost.QueryRow(p.Id, p.Title).Scan(&p.Id)
+	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
 	}
-	defer rows.Close()
-	if err, ok = s.LoadData(rows, &new_id); ok {
-		p.Id = new_id
-	}
 	p.Fil.Path = POST_LOCAL_PATH + p.Id + ".txt"
-	if ok {
-		_, err = ExeIndQuery("UPDATE uncharblog.posts SET post_path=$2 WHERE post_id=$1", p.Id, p.Fil.Path)
+	if err == nil {
+		_, err = s.Db.SqlUpdatePost.Exec(p.Id, p.Fil.Path)
 		if err != nil {
 			http.NotFound(w, r)
 			return
@@ -208,7 +191,7 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	var i int
 	var index Page
 
-	rows, err := ExeIndQuery("SELECT * FROM uncharblog.posts")
+	rows, err := s.Db.SqlGetAllPosts.Query(POST_LIMIT)
 	if err != nil {
 		return
 	}
@@ -219,7 +202,7 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	i = 0
 	for rows.Next() && i < POST_LIMIT {
 		index.List = index.List[:(i + 1)]
-		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path))
+		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate))
 		if err != nil {
 			break
 		}

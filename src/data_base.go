@@ -59,33 +59,53 @@ const DB_USER = "uncharblog"
 const DB_NAME = "pam_test"
 const DB_PASS = "K5N3gwww5U8Yxfcv"
 const DB_HOST = "192.168.27.122"
+const CONN_STR = "dbname=" + DB_NAME +
+	" user=" + DB_USER +
+	" password=" + DB_PASS +
+	" host=" + DB_HOST
 
-func ConnectDB(ConnStr string) (*sql.DB, error) {
+type pgDB struct {
+	Db               *sql.DB
+	SqlGetAllPosts   *sql.Stmt
+	SqlGetPost       *sql.Stmt
+	SqlUpdateAddPost *sql.Stmt
+	SqlUpdatePost    *sql.Stmt
+}
+
+func ConnectDB(ConnStr string) (*pgDB, error) {
 	db, err := sql.Open("postgres", ConnStr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error connecting to %s\n", ConnStr)
 		log.Print(err)
 		return nil, err
+	} else {
+		p := &pgDB{Db: db}
+		if err = p.Db.Ping(); err != nil {
+			return nil, err
+		}
+		if err = p.PrepareSqlStatements(); err != nil {
+			return nil, err
+		}
+		return p, nil
 	}
-	return db, nil
 }
 
-func ExeIndQuery(Query string, args ...interface{}) (*sql.Rows, error) {
-	ConnStr := "dbname=" + DB_NAME +
-		" user=" + DB_USER +
-		" password=" + DB_PASS +
-		" host=" + DB_HOST
-	db, err := ConnectDB(ConnStr)
-	if err != nil {
-		return nil, err
+func (p *pgDB) PrepareSqlStatements() error {
+	var err error
+
+	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT * FROM uncharblog.posts LIMIT $1"); err != nil {
+		return err
 	}
-	rows, err := db.Query(Query, args...)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing the query:\n%s\nWith args: %s\n", Query, args)
-		log.Print(err)
-		return nil, err
+	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path FROM uncharblog.posts WHERE post_id=$1"); err != nil {
+		return err
 	}
-	return rows, nil
+	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title) SELECT $2 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
+		return err
+	}
+	if p.SqlUpdatePost, err = p.Db.Prepare("UPDATE uncharblog.posts SET post_path=$2 WHERE post_id=$1"); err != nil {
+		return err
+	}
+	return nil
 }
 
 //
