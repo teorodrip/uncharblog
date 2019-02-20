@@ -44,8 +44,56 @@
 
 <!-- Code: -->
 
-<h1>{{.Title}}</h1>
-<p>[<a href="/edit/{{.Id}}">edit</a>]</p>
-<div>{{printf "%s" .Fil.Body}}</div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/stylesheets/main.css">
+    <title>{{.Title}}</title>
+  </head>
+  <body>
+    <header id="header-bar" class="site-header" role="banner" style="top: 0px;">
+      <div class="wrapper">
+        <a class="site-title" href="/">UncharBlog</a>
+        <nav class="site-nav">
+          <a class="page-link" href="/edit/0">☉ Create Post</a>
+        </nav>
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/contact.html">🤗 Contact</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/FAQ.html">🤔 FAQ</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/tags.html">🔖 Tags</a> -->
+          <!-- </nav> -->
+      </div>
+      <div></div><div></div><div></div>
+    </header>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+          <header class="post-header">
+            <h1 class="post-title" itemprop="name headline">{{.Title}}</h1>
+            <p class="post-meta">
+              <time itemprop="datePublished">
+                Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
+              </time>
+              <a class="page-link" href="/edit/{{.Id}}">✒Edit</a>
+            </p>
+          </header>
+          <div class="post-content" itemprop="articleBody">
+            {{printf "%s" .Fil.Body}}
+          </div>
+        </article>
+      </div>
+    </main>
+  </body>
+</html>
+
+
+<!-- <h1>{{.Title}}</h1> -->
+<!-- <p>[<a href="/edit/{{.Id}}">edit</a>]</p> -->
+<!-- <div>{{printf "%s" .Fil.Body}}</div> -->
 
 <!-- view.html ends here -->

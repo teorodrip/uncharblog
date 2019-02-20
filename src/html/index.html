@@ -48,33 +48,53 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="/stylesheets/main.scss">
-<form action="/edit/0" method="POST">
-      <div align="right">
-        <input type="submit" value="Create new post">
-      </div>
-    </form>
+    <link rel="stylesheet" href="/stylesheets/main.css">
     <title>{{.Title}}</title>
   </head>
   <body>
-    <h1 align="center">Unchartech global news</h1>
-    <p align="center">{{printf "%s" .Body}}</p>
-    <div align="center">
-      {{with .List}}
-      {{range .}}
-      <li>
-        <span class="pos_meta">
-          Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
-        </span>
-        <h2>
-          <a href="/view/{{.Id}}">{{.Title}}</a>
-          <blockquote><p>{{printf "%s" .Fil.Body}}</b></blockquote>
-</h2>
-</li>
-{{end}}
-{{end}}
-</div>
-</body>
+    <header id="header-bar" class="site-header" role="banner" style="top: 0px;">
+      <div class="wrapper">
+        <a class="site-title" href="/">UncharBlog</a>
+        <nav class="site-nav">
+          <a class="page-link" href="/edit/0">☉ Create Post</a>
+        </nav>
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/contact.html">🤗 Contact</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/FAQ.html">🤔 FAQ</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/tags.html">🔖 Tags</a> -->
+          <!-- </nav> -->
+      </div>
+      <div></div><div></div><div></div>
+    </header>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <div class="home other-pages">
+          <h1 class="page-heading">Unchartech global news</h1>
+          <ul class="post-list">
+            {{with .List}}
+            {{range .}}
+            <li>
+              <span class="pos_meta">
+                <time itemprop="datePublished">
+                  Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
+                </time>
+              </span>
+              <h2>
+                <a class="post-link" href="/view/{{.Id}}">{{.Title}}</a>
+                <blockquote><p>{{printf "%s" .Fil.Body}}</p></blockquote>
+              </h2>
+            </li>
+            {{end}}
+            {{end}}
+          </ul>
+        </div>
+      </div>
+    </main>
+  </body>
 </html>
 
 <!-- index.html ends here -->

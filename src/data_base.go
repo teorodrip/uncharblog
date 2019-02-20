@@ -93,10 +93,10 @@ func ConnectDB(ConnStr string) (*pgDB, error) {
 func (p *pgDB) PrepareSqlStatements() error {
 	var err error
 
-	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT * FROM uncharblog.posts LIMIT $1"); err != nil {
+	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY') FROM uncharblog.posts ORDER BY creation_date DESC NULLS LAST LIMIT $1"); err != nil {
 		return err
 	}
-	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path FROM uncharblog.posts WHERE post_id=$1"); err != nil {
+	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY') FROM uncharblog.posts WHERE post_id=$1"); err != nil {
 		return err
 	}
 	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title) SELECT $2 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {

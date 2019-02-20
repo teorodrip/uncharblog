@@ -91,6 +91,7 @@ func NewUncharServer() (*UncharServer, error) {
 
 func (s *UncharServer) Start() {
 	http.Handle(STYLE_SHEETS_URL_PATH, http.StripPrefix(STYLE_SHEETS_URL_PATH, http.FileServer(http.Dir(STYLE_SHEETS_LOCAL_PATH))))
+	http.Handle(FONTS_URL_PATH, http.StripPrefix(FONTS_URL_PATH, http.FileServer(http.Dir(FONTS_LOCAL_PATH))))
 	http.HandleFunc(VIEW_TAG, s.MakeHandler(s.ViewHandler))
 	http.HandleFunc(EDIT_TAG, s.MakeHandler(s.EditHandler))
 	http.HandleFunc(SAVE_TAG, s.MakeHandler(s.SaveHandler))
@@ -138,7 +139,7 @@ func (s *UncharServer) LoadRow(rows *sql.Rows, values ...interface{}) (error, bo
 func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var p Post
 
-	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path)
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate)
 	if err != nil {
 		http.Redirect(w, r, EDIT_TAG+title, http.StatusFound)
 		return
@@ -149,7 +150,7 @@ func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title
 
 func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p := Post{Id: "0"}
-	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path)
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate)
 	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -203,6 +204,7 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	for rows.Next() && i < POST_LIMIT {
 		index.List = index.List[:(i + 1)]
 		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate))
+		fmt.Printf("Date: %s\n", index.List[i].CreationDate)
 		if err != nil {
 			break
 		}

@@ -54,6 +54,8 @@ import (
 
 const STYLE_SHEETS_LOCAL_PATH = "./src/stylesheets/"
 const STYLE_SHEETS_URL_PATH = "/stylesheets/"
+const FONTS_LOCAL_PATH = "./resources/fonts/"
+const FONTS_URL_PATH = "/fonts/"
 const POST_LOCAL_PATH = "/home/unchartech_2/go/src/uncharblog/resources/posts/"
 
 type Post struct {

@@ -47,23 +47,70 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="/stylesheets/general_style.css">
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/stylesheets/main.css">
+    <title>{{.Title}}</title>
   </head>
-  <title>{{.Title}}</title>
   <body>
-    <form action="/save/{{.Id}}" method="POST">
-      <div align="center">
-        <font color="pink">Title:</font><br>
-        <input name="post_title" type="text" value="{{.Title}}">
+    <header id="header-bar" class="site-header" role="banner" style="top: 0px;">
+      <div class="wrapper">
+        <a class="site-title" href="/">UncharBlog</a>
+        <nav class="site-nav">
+          <a class="page-link" href="/edit/0">☉ Create Post</a>
+        </nav>
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/contact.html">🤗 Contact</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/FAQ.html">🤔 FAQ</a> -->
+          <!-- </nav> -->
+        <!-- <nav class="site-nav"> -->
+          <!--   <a class="page-link" href="/lil-log/tags.html">🔖 Tags</a> -->
+          <!-- </nav> -->
       </div>
-      <div align="center">
-        <font color="pink">Body:</font><br>
-        <textarea name="post_body" rows="20" cols="80">{{printf "%s" .Fil.Body}}</textarea></div>
-      <div align="center">
-        <input type="submit" value="Save" name="save_button">
-      </div>
-    </form>
-  </body>
+      <div></div><div></div><div></div>
+    </header>
+    <script src="http://js.nicedit.com/nicEdit-latest.js" type="text/javascript"></script>
+    <script type="text/javascript">bkLib.onDomLoaded(nicEditors.allTextAreas);</script>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+          <header class="post-header">
+            <h2 itemprop="name headline">Title:
+              <input name="post_title" type="text" value="{{.Title}}">
+            </h2>
+          </header>
+
+          <textarea name="post_body">{{printf "%s" .Fil.Body}}</textarea></div>
+
+      </article>
+</div>
+</main>
+</body>
 </html>
+
+<!-- <!DOCTYPE html> -->
+<!-- <html> -->
+  <!--   <head> -->
+    <!--     <link rel="stylesheet" href="/stylesheets/general_style.css"> -->
+    <!--   </head> -->
+  <!--   <title>{{.Title}}</title> -->
+  <!--   <script src="http://js.nicedit.com/nicEdit-latest.js" type="text/javascript"></script> -->
+  <!--   <script type="text/javascript">bkLib.onDomLoaded(nicEditors.allTextAreas);</script> -->
+  <!--   <body> -->
+    <!--     <form action="/save/{{.Id}}" method="POST"> -->
+      <!--       <div align="center"> -->
+        <!--         <font color="pink">Title:</font><br> -->
+        <!--         <input name="post_title" type="text" value="{{.Title}}"> -->
+        <!--       </div> -->
+      <!--       <div align="center"> -->
+        <!--         <font color="pink">Body:</font><br> -->
+        <!--         <textarea name="post_body">{{printf "%s" .Fil.Body}}</textarea></div> -->
+      <!--       <div align="center"> -->
+        <!--         <input type="submit" value="Save" name="save_button"> -->
+        <!--       </div> -->
+      <!--     </form> -->
+    <!--   </body> -->
+  <!-- </html> -->
 
 <!-- edit.html ends here -->
