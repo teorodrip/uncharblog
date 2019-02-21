@@ -48,6 +48,7 @@
 package main
 
 import (
+	"html/template"
 	"io/ioutil"
 	"log"
 )
@@ -74,26 +75,28 @@ type Tags struct {
 
 type Page struct {
 	Title string
-	Body  []byte
+	Body  template.HTML
 	List  []Post
 }
 
 type File struct {
 	Path string
-	Body []byte
+	Body template.HTML
 }
 
 func (f *File) SaveFile() error {
-	return (ioutil.WriteFile(f.Path, f.Body, 0600))
+	return (ioutil.WriteFile(f.Path, []byte(f.Body), 0600))
 }
 
 func (f *File) LoadFile() error {
 	var err error
+	var tmp []byte
 
-	f.Body, err = ioutil.ReadFile(f.Path)
+	tmp, err = ioutil.ReadFile(f.Path)
 	if err != nil {
 		return err
 	}
+	f.Body = template.HTML(tmp)
 	return nil
 }
 

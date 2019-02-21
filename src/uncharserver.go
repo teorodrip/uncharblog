@@ -56,6 +56,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -66,6 +67,8 @@ const TAG_TAG = "/tag/"
 const INDEX_TAG = "/"
 const POST_BODY_TAG = "post_body"
 const POST_TITLE_TAG = "post_title"
+const POST_LINK_TAG = "post_link"
+const POST_TAGS_TAG = "post_tags"
 const HTML_DIR = "./src/html/"
 
 const POST_LIMIT = 10
@@ -76,8 +79,11 @@ type UncharServer struct {
 	ValidPath *regexp.Regexp
 }
 
-func Cosa() string {
-	return "{{AAAAAAAAAAAAAAAA<br>"
+func TagsToString(tags []string) (ret string) {
+	for _, tag := range tags {
+		ret += tag + ","
+	}
+	return ret
 }
 
 func NewUncharServer() (*UncharServer, error) {
@@ -86,7 +92,7 @@ func NewUncharServer() (*UncharServer, error) {
 		return nil, err
 	}
 	tmpl_funcs := template.FuncMap{
-		"Cosa": Cosa}
+		"TagsToString": TagsToString}
 	tmpl := template.New("uncharblog")
 	tmpl.Funcs(tmpl_funcs)
 	tmpl.ParseFiles(file_names...)
@@ -176,8 +182,10 @@ func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title
 	var p Post
 
 	p.Id = title
-	p.Fil.Body = []byte(r.FormValue(POST_BODY_TAG))
+	p.Fil.Body = template.HTML(r.FormValue(POST_BODY_TAG))
 	p.Title = r.FormValue(POST_TITLE_TAG)
+	p.Tag.TagName = strings.Split(r.FormValue(POST_TAGS_TAG), ",")
+	fmt.Printf("Tags: %s\n", p.Tag.TagName)
 	if len(p.Fil.Body) == 0 || len(p.Title) == 0 {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -188,6 +196,20 @@ func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title
 		http.NotFound(w, r)
 		return
 	}
+	//TODO
+	// // delete tags
+	// _, err = s.Db.SqlDelPostTags.Exec(p.Id)
+	// if err != nil {
+	//	http.NotFound(w, r)
+	//	return
+	// }
+	// // add new tags
+	// for _, tag := range p.Tag.Tag
+	// _, err = s.Db.SqlAddPostTags.Exec(p.Id, p.Fil.Path)
+	// if err != nil {
+	//	http.NotFound(w, r)
+	//	return
+	// }
 	p.Fil.Path = POST_LOCAL_PATH + p.Id + ".txt"
 	if err == nil {
 		_, err = s.Db.SqlUpdatePost.Exec(p.Id, p.Fil.Path)
@@ -213,8 +235,7 @@ func (s *UncharServer) TagHandler(w http.ResponseWriter, r *http.Request, title 
 		return
 	}
 	defer rows.Close()
-	index.Title = "UncharBlog"
-	index.Body = []byte("Awesome things.")
+	index.Title = r.URL.Query().Get("tag_name")
 	index.List = make([]Post, 0, POST_LIMIT)
 	i = 0
 	for rows.Next() && i < POST_LIMIT {
@@ -239,7 +260,7 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	}
 	defer rows.Close()
 	index.Title = "UncharBlog"
-	index.Body = []byte("Awesome things.")
+	index.Body = template.HTML("Awesome things.")
 	index.List = make([]Post, 0, POST_LIMIT)
 	i = 0
 	for rows.Next() && i < POST_LIMIT {

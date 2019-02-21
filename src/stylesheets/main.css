@@ -679,4 +679,9 @@ textarea {
     width: 100%;
     height: 60em;
 }
+
+input, label {
+    display:block;
+}
+
 /*# sourceMappingURL=main.css.map */

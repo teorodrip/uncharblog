@@ -77,14 +77,14 @@
           <ul class="post-list">
             {{range $i_post, $post := .List}}
             <li>
-              <span class="post_meta">
-                Created: {{$post.CreationDate}}, Updated: {{$post.UpdateDate}}
+              <span class="post-meta">
+                {{$post.CreationDate}} (Last Update: {{$post.UpdateDate}})
                 {{$len_name := len $post.Tag.TagName}}
                 {{$len_id := len $post.Tag.TagId}}
                 {{if eq $len_name $len_id}}
                 {{range $i, $tag := $post.Tag.TagName}}
                 <span>
-                  <a class="post-tag" href="/tag/{{index $post.Tag.TagId $i}}">
+                  <a class="post-tag" href="/tag/{{index $post.Tag.TagId $i}}?tag_name={{index $post.Tag.TagName $i}}">
                     <nobr>{{index $post.Tag.TagName $i}}</nobr>
                   </a>
                 </span>
@@ -93,7 +93,7 @@
               </span>
               <h2>
                 <a class="post-link" href="/view/{{$post.Id}}">{{$post.Title}}</a>
-                <blockquote><p>{{printf "%s" $post.Fil.Body}}</p></blockquote>
+                <blockquote><p>{{$post.Fil.Body}}</p></blockquote>
               </h2>
             </li>
             {{end}}

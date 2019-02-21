@@ -82,6 +82,8 @@ type pgDB struct {
 	SqlCreateTagNameByPostFunc *sql.Stmt
 	SqlCreateTagIdByPostFunc   *sql.Stmt
 	SqlPostsByTag              *sql.Stmt
+	SqlDelPostTags             *sql.Stmt
+	SqlAddPostTags             *sql.Stmt
 }
 
 func ConnectDB(ConnStr string) (*pgDB, error) {
@@ -130,6 +132,12 @@ func (p *pgDB) PrepareSqlStatements() error {
 		return err
 	}
 	if p.SqlPostsByTag, err = p.Db.Prepare("SELECT t.post_id, t.post_title, t.post_path, TO_CHAR(t.creation_date, 'dd-mon-YYYY'), TO_CHAR(t.update_date, 'dd-mon-YYYY'), get_tag_id_by_post(t.post_id), get_tag_name_by_post(t.post_id) FROM uncharblog.posts AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.post_id = pt.post_id INNER JOIN uncharblog.tags AS p ON p.tag_id = pt.tag_id WHERE p.tag_id in ($1) ORDER BY t.creation_date DESC NULLS LAST LIMIT $2"); err != nil {
+		return err
+	}
+	if p.SqlDelPostTags, err = p.Db.Prepare("DELETE FROM uncharblog.post_tag_ref WHERE post_id = $1"); err != nil {
+		return err
+	}
+	if p.SqlAddPostTags, err = p.Db.Prepare("INSERT INTO uncharblog.post_tag_ref VALUES ($1, $2)"); err != nil {
 		return err
 	}
 	return nil

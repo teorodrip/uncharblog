@@ -85,7 +85,7 @@
               {{if eq $len_name $len_id}}
               {{range $i, $tag := .Tag.TagName}}
               <span>
-                <a class="post-tag" href="/tag/{{index $.Tag.TagId $i}}">
+                <a class="post-tag" href="/tag/{{index $.Tag.TagId $i}}?tag_name={{index $.Tag.TagName $i}}">
                   <nobr>{{index $.Tag.TagName $i}}</nobr>
                 </a>
               </span>
@@ -94,8 +94,7 @@
             </p>
           </header>
           <div class="post-content" itemprop="articleBody">
-            {{Cosa}}
-            {{printf "%s" .Fil.Body}}
+            {{.Fil.Body}}
           </div>
         </article>
       </div>

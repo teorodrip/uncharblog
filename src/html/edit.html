@@ -77,10 +77,24 @@
         <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
           <form action="/save/{{.Id}}" method="POST">
             <header class="post-header">
-              <h2 itemprop="name headline">Title:
-                <input name="post_title" type="text" value="{{.Title}}">
-                <input align="right" type="submit" value="Save">
-              </h2>
+                  <input style="float:right;margin-bottom:20px;" type="submit" value="Save">
+              <section>
+                <div style="float:left;margin-right:20px;margin-bottom:20px;">
+                  <label>Title</label>
+                  <input align="left" name="post_title" type="text" value="{{.Title}}">
+                </div>
+                <div style="float:left;">
+                  <label>Link</label>
+                  <input align="right" name="post_link" type="text" value="{{.Title}}">
+                </div>
+                <br style="clear:both;" />
+              </section>
+              <section>
+                <div style="float:left;margin-right:20px;margin-bottom:20px;">
+                  <label>Tags</label>
+                  <input align="left" name="post_tags" type="text" value="{{TagsToString .Tag.TagName}}">
+                </div>
+              </section>
             </header>
             <textarea name="post_body">{{printf "%s" .Fil.Body}}</textarea>
           </form>
