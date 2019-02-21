@@ -80,9 +80,21 @@
                 Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
               </time>
               <a class="page-link" href="/edit/{{.Id}}">✒Edit</a>
+              {{$len_name := len .Tag.TagName}}
+              {{$len_id := len .Tag.TagId}}
+              {{if eq $len_name $len_id}}
+              {{range $i, $tag := .Tag.TagName}}
+              <span>
+                <a class="post-tag" href="/tag/{{index $.Tag.TagId $i}}">
+                  <nobr>{{index $.Tag.TagName $i}}</nobr>
+                </a>
+              </span>
+              {{end}}
+              {{end}}
             </p>
           </header>
           <div class="post-content" itemprop="articleBody">
+            {{Cosa}}
             {{printf "%s" .Fil.Body}}
           </div>
         </article>

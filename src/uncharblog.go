@@ -63,7 +63,13 @@ type Post struct {
 	Title        string
 	CreationDate string
 	UpdateDate   string
+	Tag          Tags
 	Fil          File
+}
+
+type Tags struct {
+	TagName []string
+	TagId   []string
 }
 
 type Page struct {

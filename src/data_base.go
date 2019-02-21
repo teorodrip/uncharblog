@@ -45,6 +45,15 @@
 
 // Code:
 
+// postgre tag array function
+
+// CREATE FUNCTION get_tag_arr(integer) RETURNS text[] AS $$
+// SELECT ARRAY(SELECT t.tag_name FROM uncharblog.tags AS t
+//	INNER JOIN uncharblog.post_tag_ref AS pt ON t.tag_id = pt.tag_id
+//	INNER JOIN uncharblog.posts AS p ON p.post_id = pt.post_id
+//	WHERE p.post_id in ($1))
+// $$ LANGUAGE SQL;
+
 package main
 
 import (
@@ -65,11 +74,14 @@ const CONN_STR = "dbname=" + DB_NAME +
 	" host=" + DB_HOST
 
 type pgDB struct {
-	Db               *sql.DB
-	SqlGetAllPosts   *sql.Stmt
-	SqlGetPost       *sql.Stmt
-	SqlUpdateAddPost *sql.Stmt
-	SqlUpdatePost    *sql.Stmt
+	Db                         *sql.DB
+	SqlGetAllPosts             *sql.Stmt
+	SqlGetPost                 *sql.Stmt
+	SqlUpdateAddPost           *sql.Stmt
+	SqlUpdatePost              *sql.Stmt
+	SqlCreateTagNameByPostFunc *sql.Stmt
+	SqlCreateTagIdByPostFunc   *sql.Stmt
+	SqlPostsByTag              *sql.Stmt
 }
 
 func ConnectDB(ConnStr string) (*pgDB, error) {
@@ -86,6 +98,12 @@ func ConnectDB(ConnStr string) (*pgDB, error) {
 		if err = p.PrepareSqlStatements(); err != nil {
 			return nil, err
 		}
+		if _, err = p.SqlCreateTagNameByPostFunc.Exec(); err != nil {
+			return nil, err
+		}
+		if _, err = p.SqlCreateTagIdByPostFunc.Exec(); err != nil {
+			return nil, err
+		}
 		return p, nil
 	}
 }
@@ -93,16 +111,25 @@ func ConnectDB(ConnStr string) (*pgDB, error) {
 func (p *pgDB) PrepareSqlStatements() error {
 	var err error
 
-	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY') FROM uncharblog.posts ORDER BY creation_date DESC NULLS LAST LIMIT $1"); err != nil {
+	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts ORDER BY creation_date DESC NULLS LAST LIMIT $1"); err != nil {
 		return err
 	}
-	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY') FROM uncharblog.posts WHERE post_id=$1"); err != nil {
+	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts WHERE post_id=$1"); err != nil {
 		return err
 	}
 	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2, update_date=$3 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title, creation_date, update_date) SELECT $2, $3, $3 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
 		return err
 	}
 	if p.SqlUpdatePost, err = p.Db.Prepare("UPDATE uncharblog.posts SET post_path=$2 WHERE post_id=$1"); err != nil {
+		return err
+	}
+	if p.SqlCreateTagNameByPostFunc, err = p.Db.Prepare("CREATE OR REPLACE FUNCTION get_tag_name_by_post(integer) RETURNS text[] AS $$ SELECT ARRAY(SELECT t.tag_name FROM uncharblog.tags AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.tag_id = pt.tag_id INNER JOIN uncharblog.posts AS p ON p.post_id = pt.post_id WHERE p.post_id in ($1)) $$ LANGUAGE SQL;"); err != nil {
+		return err
+	}
+	if p.SqlCreateTagIdByPostFunc, err = p.Db.Prepare("CREATE OR REPLACE FUNCTION get_tag_id_by_post(integer) RETURNS int[] AS $$ SELECT ARRAY(SELECT t.tag_id FROM uncharblog.tags AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.tag_id = pt.tag_id INNER JOIN uncharblog.posts AS p ON p.post_id = pt.post_id	WHERE p.post_id in ($1)) $$ LANGUAGE SQL;"); err != nil {
+		return err
+	}
+	if p.SqlPostsByTag, err = p.Db.Prepare("SELECT t.post_id, t.post_title, t.post_path, TO_CHAR(t.creation_date, 'dd-mon-YYYY'), TO_CHAR(t.update_date, 'dd-mon-YYYY'), get_tag_id_by_post(t.post_id), get_tag_name_by_post(t.post_id) FROM uncharblog.posts AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.post_id = pt.post_id INNER JOIN uncharblog.tags AS p ON p.tag_id = pt.tag_id WHERE p.tag_id in ($1) ORDER BY t.creation_date DESC NULLS LAST LIMIT $2"); err != nil {
 		return err
 	}
 	return nil
