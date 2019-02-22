@@ -79,6 +79,7 @@
               <time itemprop="datePublished">
                 Created: {{.CreationDate}}, Updated: {{.UpdateDate}}
               </time>
+              <a href="{{.Link}}" style="margin-right:20px;">(🔗 Link)</a>
               <a class="page-link" href="/edit/{{.Id}}">✒Edit</a>
               {{$len_name := len .Tag.TagName}}
               {{$len_id := len .Tag.TagId}}

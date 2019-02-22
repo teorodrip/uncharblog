@@ -49,6 +49,7 @@ package main
 
 import (
 	"io/ioutil"
+	"strings"
 )
 
 func GetFilesFromDir(path string) ([]string, error) {
@@ -62,6 +63,35 @@ func GetFilesFromDir(path string) ([]string, error) {
 		file_names[i] = path + files[i].Name()
 	}
 	return file_names, nil
+}
+
+func SplitString(str, sep string) []string {
+	n_sep := strings.Count(str, sep) + 1
+	if n_sep == 1 && str == "" {
+		return nil
+	}
+	ret := make([]string, n_sep)
+	n_sep--
+	i := 0
+	for i < n_sep {
+		j := 0
+		m := strings.Index(str, sep)
+		if m < 0 {
+			break
+		}
+		for j < m && str[j:j+1] == " " {
+			j++
+		}
+		ret[i] = str[j:m]
+		str = str[m+len(sep):]
+		i++
+	}
+	j := 0
+	for j < len(str) && str[j:j+1] == " " {
+		j++
+	}
+	ret[i] = str[j:]
+	return ret[:i+1]
 }
 
 //

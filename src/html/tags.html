@@ -79,6 +79,7 @@
             <li>
               <span class="post-meta">
                 {{$post.CreationDate}} (Last Update: {{$post.UpdateDate}})
+                <a href="{{$post.Link}}" style="margin-right:20px;">(🔗 Link)</a>
                 {{$len_name := len $post.Tag.TagName}}
                 {{$len_id := len $post.Tag.TagId}}
                 {{if eq $len_name $len_id}}

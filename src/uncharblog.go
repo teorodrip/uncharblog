@@ -64,6 +64,7 @@ type Post struct {
 	Title        string
 	CreationDate string
 	UpdateDate   string
+	Link         string
 	Tag          Tags
 	Fil          File
 }

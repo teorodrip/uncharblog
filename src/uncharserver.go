@@ -56,7 +56,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -83,7 +82,11 @@ func TagsToString(tags []string) (ret string) {
 	for _, tag := range tags {
 		ret += tag + ","
 	}
-	return ret
+	if len(ret) > 0 {
+		return ret[:len(ret)-1]
+	} else {
+		return ret
+	}
 }
 
 func NewUncharServer() (*UncharServer, error) {
@@ -156,7 +159,7 @@ func (s *UncharServer) LoadRow(rows *sql.Rows, values ...interface{}) (error, bo
 func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var p Post
 
-	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate, pq.Array(&p.Tag.TagId), pq.Array(&p.Tag.TagName))
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate, &p.Link, pq.Array(&p.Tag.TagId), pq.Array(&p.Tag.TagName))
 	if err != nil {
 		http.Redirect(w, r, EDIT_TAG+title, http.StatusFound)
 		return
@@ -167,7 +170,7 @@ func (s *UncharServer) ViewHandler(w http.ResponseWriter, r *http.Request, title
 
 func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p := Post{Id: "0"}
-	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate, pq.Array(&p.Tag.TagId), pq.Array(&p.Tag.TagName))
+	err := s.Db.SqlGetPost.QueryRow(title).Scan(&p.Id, &p.Title, &p.Fil.Path, &p.CreationDate, &p.UpdateDate, &p.Link, pq.Array(&p.Tag.TagId), pq.Array(&p.Tag.TagName))
 	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -180,36 +183,44 @@ func (s *UncharServer) EditHandler(w http.ResponseWriter, r *http.Request, title
 
 func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var p Post
+	var tmp_tag_id string
 
 	p.Id = title
 	p.Fil.Body = template.HTML(r.FormValue(POST_BODY_TAG))
 	p.Title = r.FormValue(POST_TITLE_TAG)
-	p.Tag.TagName = strings.Split(r.FormValue(POST_TAGS_TAG), ",")
-	fmt.Printf("Tags: %s\n", p.Tag.TagName)
+	p.Link = r.FormValue(POST_LINK_TAG)
+	p.Tag.TagName = SplitString(r.FormValue(POST_TAGS_TAG), ",")
 	if len(p.Fil.Body) == 0 || len(p.Title) == 0 {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 	date := time.Now().Local().Format("2006-01-02")
-	err := s.Db.SqlUpdateAddPost.QueryRow(p.Id, p.Title, date).Scan(&p.Id)
+	err := s.Db.SqlUpdateAddPost.QueryRow(p.Id, p.Title, date, p.Link).Scan(&p.Id)
 	if err != nil && err != sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
 	}
-	//TODO
-	// // delete tags
-	// _, err = s.Db.SqlDelPostTags.Exec(p.Id)
-	// if err != nil {
-	//	http.NotFound(w, r)
-	//	return
-	// }
-	// // add new tags
-	// for _, tag := range p.Tag.Tag
-	// _, err = s.Db.SqlAddPostTags.Exec(p.Id, p.Fil.Path)
-	// if err != nil {
-	//	http.NotFound(w, r)
-	//	return
-	// }
+	// delete tags
+	_, err = s.Db.SqlDelPostTags.Exec(p.Id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	// add new tags
+	for _, tag := range p.Tag.TagName {
+		// add to tag list if not exists
+		err = s.Db.SqlAddTag.QueryRow(tag).Scan(&tmp_tag_id)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		// add the reference to the post
+		_, err = s.Db.SqlAddPostTags.Exec(p.Id, tmp_tag_id)
+		if err != nil {
+			// add to the request the case when the key alrady exists
+			continue
+		}
+	}
 	p.Fil.Path = POST_LOCAL_PATH + p.Id + ".txt"
 	if err == nil {
 		_, err = s.Db.SqlUpdatePost.Exec(p.Id, p.Fil.Path)
@@ -240,7 +251,7 @@ func (s *UncharServer) TagHandler(w http.ResponseWriter, r *http.Request, title 
 	i = 0
 	for rows.Next() && i < POST_LIMIT {
 		index.List = index.List[:(i + 1)]
-		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate), pq.Array(&(index.List[i].Tag.TagId)), pq.Array(&(index.List[i].Tag.TagName)))
+		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate), &(index.List[i].Link), pq.Array(&(index.List[i].Tag.TagId)), pq.Array(&(index.List[i].Tag.TagName)))
 		if err != nil {
 			break
 		}
@@ -265,7 +276,7 @@ func (s *UncharServer) IndexHandler(w http.ResponseWriter, r *http.Request, titl
 	i = 0
 	for rows.Next() && i < POST_LIMIT {
 		index.List = index.List[:(i + 1)]
-		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate), pq.Array(&(index.List[i].Tag.TagId)), pq.Array(&(index.List[i].Tag.TagName)))
+		err := rows.Scan(&(index.List[i].Id), &(index.List[i].Title), &(index.List[i].Fil.Path), &(index.List[i].CreationDate), &(index.List[i].UpdateDate), &(index.List[i].Link), pq.Array(&(index.List[i].Tag.TagId)), pq.Array(&(index.List[i].Tag.TagName)))
 		if err != nil {
 			break
 		}

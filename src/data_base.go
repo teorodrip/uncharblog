@@ -84,6 +84,7 @@ type pgDB struct {
 	SqlPostsByTag              *sql.Stmt
 	SqlDelPostTags             *sql.Stmt
 	SqlAddPostTags             *sql.Stmt
+	SqlAddTag                  *sql.Stmt
 }
 
 func ConnectDB(ConnStr string) (*pgDB, error) {
@@ -113,13 +114,13 @@ func ConnectDB(ConnStr string) (*pgDB, error) {
 func (p *pgDB) PrepareSqlStatements() error {
 	var err error
 
-	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts ORDER BY creation_date DESC NULLS LAST LIMIT $1"); err != nil {
+	if p.SqlGetAllPosts, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), post_link, get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts ORDER BY creation_date DESC NULLS LAST LIMIT $1"); err != nil {
 		return err
 	}
-	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts WHERE post_id=$1"); err != nil {
+	if p.SqlGetPost, err = p.Db.Prepare("SELECT post_id, post_title, post_path, TO_CHAR(creation_date, 'dd-mon-YYYY'), TO_CHAR(update_date, 'dd-mon-YYYY'), post_link, get_tag_id_by_post(post_id), get_tag_name_by_post(post_id) FROM uncharblog.posts WHERE post_id=$1"); err != nil {
 		return err
 	}
-	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2, update_date=$3 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title, creation_date, update_date) SELECT $2, $3, $3 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
+	if p.SqlUpdateAddPost, err = p.Db.Prepare("with updated as (UPDATE uncharblog.posts SET post_title=$2, update_date=$3, post_link=$4 WHERE post_id=$1) INSERT INTO uncharblog.posts (post_title, creation_date, update_date, post_link) SELECT $2, $3, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM uncharblog.posts WHERE post_id=$1) RETURNING post_id;"); err != nil {
 		return err
 	}
 	if p.SqlUpdatePost, err = p.Db.Prepare("UPDATE uncharblog.posts SET post_path=$2 WHERE post_id=$1"); err != nil {
@@ -131,13 +132,16 @@ func (p *pgDB) PrepareSqlStatements() error {
 	if p.SqlCreateTagIdByPostFunc, err = p.Db.Prepare("CREATE OR REPLACE FUNCTION get_tag_id_by_post(integer) RETURNS int[] AS $$ SELECT ARRAY(SELECT t.tag_id FROM uncharblog.tags AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.tag_id = pt.tag_id INNER JOIN uncharblog.posts AS p ON p.post_id = pt.post_id	WHERE p.post_id in ($1)) $$ LANGUAGE SQL;"); err != nil {
 		return err
 	}
-	if p.SqlPostsByTag, err = p.Db.Prepare("SELECT t.post_id, t.post_title, t.post_path, TO_CHAR(t.creation_date, 'dd-mon-YYYY'), TO_CHAR(t.update_date, 'dd-mon-YYYY'), get_tag_id_by_post(t.post_id), get_tag_name_by_post(t.post_id) FROM uncharblog.posts AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.post_id = pt.post_id INNER JOIN uncharblog.tags AS p ON p.tag_id = pt.tag_id WHERE p.tag_id in ($1) ORDER BY t.creation_date DESC NULLS LAST LIMIT $2"); err != nil {
+	if p.SqlPostsByTag, err = p.Db.Prepare("SELECT t.post_id, t.post_title, t.post_path, TO_CHAR(t.creation_date, 'dd-mon-YYYY'), TO_CHAR(t.update_date, 'dd-mon-YYYY'), post_link, get_tag_id_by_post(t.post_id), get_tag_name_by_post(t.post_id) FROM uncharblog.posts AS t INNER JOIN uncharblog.post_tag_ref AS pt ON t.post_id = pt.post_id INNER JOIN uncharblog.tags AS p ON p.tag_id = pt.tag_id WHERE p.tag_id in ($1) ORDER BY t.creation_date DESC NULLS LAST LIMIT $2"); err != nil {
 		return err
 	}
 	if p.SqlDelPostTags, err = p.Db.Prepare("DELETE FROM uncharblog.post_tag_ref WHERE post_id = $1"); err != nil {
 		return err
 	}
 	if p.SqlAddPostTags, err = p.Db.Prepare("INSERT INTO uncharblog.post_tag_ref VALUES ($1, $2)"); err != nil {
+		return err
+	}
+	if p.SqlAddTag, err = p.Db.Prepare("WITH s AS (SELECT tag_id FROM uncharblog.tags WHERE tag_name = $1), i AS (INSERT INTO uncharblog.tags(tag_name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM s) RETURNING tag_id) SELECT tag_id FROM i UNION ALL SELECT tag_id FROM s"); err != nil {
 		return err
 	}
 	return nil
