@@ -85,6 +85,8 @@ type pgDB struct {
 	SqlDelPostTags             *sql.Stmt
 	SqlAddPostTags             *sql.Stmt
 	SqlAddTag                  *sql.Stmt
+	SqlCreateCountRepTagFunc   *sql.Stmt
+	SqlGetUsedTags             *sql.Stmt
 }
 
 func ConnectDB(ConnStr string) (*pgDB, error) {
@@ -105,6 +107,9 @@ func ConnectDB(ConnStr string) (*pgDB, error) {
 			return nil, err
 		}
 		if _, err = p.SqlCreateTagIdByPostFunc.Exec(); err != nil {
+			return nil, err
+		}
+		if _, err = p.SqlCreateCountRepTagFunc.Exec(); err != nil {
 			return nil, err
 		}
 		return p, nil
@@ -142,6 +147,12 @@ func (p *pgDB) PrepareSqlStatements() error {
 		return err
 	}
 	if p.SqlAddTag, err = p.Db.Prepare("WITH s AS (SELECT tag_id FROM uncharblog.tags WHERE tag_name = $1), i AS (INSERT INTO uncharblog.tags(tag_name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM s) RETURNING tag_id) SELECT tag_id FROM i UNION ALL SELECT tag_id FROM s"); err != nil {
+		return err
+	}
+	if p.SqlCreateCountRepTagFunc, err = p.Db.Prepare("CREATE OR REPLACE FUNCTION count_repeated_tag(integer) RETURNS bigint AS $$ SELECT COUNT(tag_id) FROM uncharblog.post_tag_ref WHERE tag_id = $1 $$ LANGUAGE SQL;"); err != nil {
+		return err
+	}
+	if p.SqlGetUsedTags, err = p.Db.Prepare("SELECT tag_id, tag_name, count_repeated_tag(tag_id) FROM uncharblog.tags WHERE tag_id IN (SELECT DISTINCT tag_id FROM uncharblog.post_tag_ref )"); err != nil {
 		return err
 	}
 	return nil

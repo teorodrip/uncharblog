@@ -1,10 +1,10 @@
-<!-- index.html ---
+<!-- tag_list.html ---
      ;;
-     ;; Filename: index.html
+     ;; Filename: tag_list.html
      ;; Description:
      ;; Author: Mateo Rodriguez Ripolles
      ;; Maintainer:
-     ;; Created: lun. févr. 18 11:54:09 2019 (+0100)
+     ;; Created: ven. févr. 22 14:09:16 2019 (+0100)
      ;; Version:
      ;; Package-Requires: ()
      ;; Last-Updated:
@@ -49,7 +49,7 @@
   <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="/stylesheets/main.css">
-    <title>{{.Title}}</title>
+    <title>Tags</title>
   </head>
   <body>
     <header id="header-bar" class="site-header" role="banner" style="top: 0px;">
@@ -76,36 +76,19 @@
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
         <div class="home other-pages">
-          <h1 class="page-heading">Unchartech global news</h1>
-          <ul class="post-list">
-            {{range $i_post, $post := .List}}
-            <li>
-              <span class="post-meta">
-                {{$post.CreationDate}} (Last Update: {{$post.UpdateDate}})
-                <a href="{{$post.Link}}" style="margin-right:20px;">(🔗 Link)</a>
-                {{$len_name := len $post.Tag.TagName}}
-                {{$len_id := len $post.Tag.TagId}}
-                {{if eq $len_name $len_id}}
-                {{range $i, $tag := $post.Tag.TagName}}
-                <span>
-                  <a class="post-tag" href="/tag/{{index $post.Tag.TagId $i}}?tag_name={{index $post.Tag.TagName $i}}">
-                    <nobr>{{index $post.Tag.TagName $i}}</nobr>
-                  </a>
-                </span>
-                {{end}}
-                {{end}}
-              </span>
-              <h2>
-                <a class="post-link" href="/view/{{$post.Id}}">{{$post.Title}}</a>
-                <blockquote><p>{{$post.Fil.Body}}</p></blockquote>
-              </h2>
-            </li>
-            {{end}}
-          </ul>
+          <h1 class="page-heading">Tags</h1>
+          {{range $i, $tag := .Tags}}
+          <span class="post-meta">
+            <a class="post-tag" href="/tag/{{index $tag.Id}}?tag_name={{index $tag.Name}}">
+              <nobr>{{index $tag.Name}} ({{$tag.PostNb}})</nobr>
+            </a>
+          </span>
+          <br>
+          {{end}}
         </div>
       </div>
     </main>
   </body>
 </html>
 
-<!-- index.html ends here -->
+<!-- tag_list.html ends here -->

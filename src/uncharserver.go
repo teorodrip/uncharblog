@@ -63,6 +63,7 @@ const VIEW_TAG = "/view/"
 const EDIT_TAG = "/edit/"
 const SAVE_TAG = "/save/"
 const TAG_TAG = "/tag/"
+const TAGLIST_TAG = "/tag_list/"
 const INDEX_TAG = "/"
 const POST_BODY_TAG = "post_body"
 const POST_TITLE_TAG = "post_title"
@@ -70,7 +71,8 @@ const POST_LINK_TAG = "post_link"
 const POST_TAGS_TAG = "post_tags"
 const HTML_DIR = "./src/html/"
 
-const POST_LIMIT = 10
+const POST_LIMIT = 1024
+const TAG_LIMIT = 1024
 
 type UncharServer struct {
 	Db        *pgDB
@@ -79,14 +81,13 @@ type UncharServer struct {
 }
 
 func TagsToString(tags []string) (ret string) {
+	if len(tags) == 0 {
+		return
+	}
 	for _, tag := range tags {
 		ret += tag + ","
 	}
-	if len(ret) > 0 {
-		return ret[:len(ret)-1]
-	} else {
-		return ret
-	}
+	return ret[:len(ret)-1]
 }
 
 func NewUncharServer() (*UncharServer, error) {
@@ -101,7 +102,7 @@ func NewUncharServer() (*UncharServer, error) {
 	tmpl.ParseFiles(file_names...)
 	server := &UncharServer{
 		Templates: tmpl,
-		ValidPath: regexp.MustCompile("^/((edit|save|view|tag)/([a-zA-Z0-9]+))?$")}
+		ValidPath: regexp.MustCompile("^/((edit|save|view|tag|tag_list)/([a-zA-Z0-9]+))?$")}
 	if server.Db, err = ConnectDB(CONN_STR); err != nil {
 		return nil, err
 	}
@@ -116,6 +117,7 @@ func (s *UncharServer) Start() {
 	http.HandleFunc(SAVE_TAG, s.MakeHandler(s.SaveHandler))
 	http.HandleFunc(INDEX_TAG, s.MakeHandler(s.IndexHandler))
 	http.HandleFunc(TAG_TAG, s.MakeHandler(s.TagHandler))
+	http.HandleFunc(TAGLIST_TAG, s.MakeHandler(s.TagListHandler))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -237,12 +239,42 @@ func (s *UncharServer) SaveHandler(w http.ResponseWriter, r *http.Request, title
 	http.Redirect(w, r, VIEW_TAG+p.Id, http.StatusFound)
 }
 
+func (s *UncharServer) TagListHandler(w http.ResponseWriter, r *http.Request, title string) {
+	type TagList struct {
+		Id     string
+		Name   string
+		PostNb string
+	}
+	type TmpTag struct {
+		Tags []TagList
+	}
+	var tmp_tags TmpTag
+
+	rows, err := s.Db.SqlGetUsedTags.Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	tmp_tags.Tags = make([]TagList, 0, TAG_LIMIT)
+	i := 0
+	for rows.Next() && i < TAG_LIMIT {
+		tmp_tags.Tags = tmp_tags.Tags[:i+1]
+		err := rows.Scan(&(tmp_tags.Tags[i].Id), &(tmp_tags.Tags[i].Name), &(tmp_tags.Tags[i].PostNb))
+		if err != nil {
+			break
+		}
+		i++
+	}
+	s.RenderTemplate(w, "tag_list", tmp_tags)
+}
+
 func (s *UncharServer) TagHandler(w http.ResponseWriter, r *http.Request, title string) {
 	var i int
 	var index Page
 
 	rows, err := s.Db.SqlPostsByTag.Query(title, POST_LIMIT)
 	if err != nil {
+		http.NotFound(w, r)
 		return
 	}
 	defer rows.Close()
